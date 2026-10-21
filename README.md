@@ -1,187 +1,142 @@
-# Patient Monitoring System App (CareTrack)
+# @vitejs/plugin-react [![npm](https://img.shields.io/npm/v/@vitejs/plugin-react.svg)](https://npmjs.com/package/@vitejs/plugin-react)
 
-A full-stack MERN application for monitoring patient health information and
-enabling doctor-patient communication, with role-based access for patients,
-doctors, and admins.
+The default Vite plugin for React projects.
 
-## Features
+- enable [Fast Refresh](https://www.npmjs.com/package/react-refresh) in development (requires react >= 16.9)
+- use the [automatic JSX runtime](https://legacy.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html)
+- use custom Babel plugins/presets
+- small installation size
 
-**Core**
-- JWT authentication, bcrypt password hashing, role-based access (patient / doctor / admin)
-- Patient health readings with configurable abnormal-reading alerts
-- Health history with trend charts (Recharts)
-- Appointment booking, confirmation/cancellation workflow, doctor picker
-- Dashboard statistics per role
+```js
+// vite.config.js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-**Added in this build**
-- **AI-assisted health insights (current trend)**: explainable trend detection, wellness monitoring score, recent-value analysis, and attention flags generated from the patient's own readings. No diagnosis is made and no external AI service is required.
-- **Medications**: patients can add, pause/resume, and remove medication reminders
-- **Real-time messaging**: Socket.IO-powered doctor-patient chat, with contact list
-  derived from shared appointments/prior conversations
-- **Notifications**: in-app bell with live push (Socket.IO) for health alerts,
-  appointment updates, and new messages; mark as read / mark all as read
-- **Medical document upload**: patients upload PDFs/images/Word docs (local disk
-  storage, served from `/uploads`); doctors can view a patient's documents
-- **Admin panel**: create/deactivate/delete user accounts, view system-wide stats
-- **Doctor patient detail view**: per-patient health trend chart and history
-
-## Technology
-Frontend: React + Vite + React Router + Axios + Recharts + Socket.IO client
-Backend: Node.js + Express + MongoDB + Mongoose + JWT + bcryptjs + Multer + Socket.IO
-Database: MongoDB
-
-## Requirements
-- Node.js 18+
-- MongoDB Community Server (running locally) or a MongoDB Atlas connection string
-
-## Setup
-
-### 1. Backend
-```bash
-cd backend
-npm install
-cp .env.example .env      # on Windows: copy .env.example .env
-# edit .env if needed (Mongo URI, JWT secret, etc.)
-npm run seed               # optional: creates demo admin/doctor/patient accounts + sample data
-npm run dev
-```
-Backend runs at http://localhost:5000 (REST API + Socket.IO on the same port).
-
-### 2. Frontend
-Open another terminal:
-```bash
-cd frontend
-npm install
-cp .env.example .env       # on Windows: copy .env.example .env
-npm run dev
-```
-Frontend runs at http://localhost:5173
-
-### 3. Demo logins (after `npm run seed`)
-| Role    | Email                 | Password    |
-|---------|-----------------------|-------------|
-| Admin   | admin@example.com     | Password123 |
-| Doctor  | doctor@example.com    | Password123 |
-| Patient | patient@example.com   | Password123 |
-
-You can also register new patient/doctor accounts from the login screen.
-Admin accounts can only be created via the seed script or by an existing admin
-from the Admin Panel — public self-registration cannot create admins.
-
-## Environment
-
-Backend `.env`:
-```
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/patient_monitoring_system
-JWT_SECRET=change_this_to_a_long_random_secret
-CLIENT_URL=http://localhost:5173
+export default defineConfig({
+  plugins: [react()],
+})
 ```
 
-Frontend `.env`:
-```
-VITE_API_URL=http://localhost:5000/api
-VITE_SOCKET_URL=http://localhost:5000
-```
+## Options
 
-## API overview
-```
-POST   /api/auth/register
-POST   /api/auth/login
-GET    /api/auth/me
+### include/exclude
 
-GET    /api/health
-POST   /api/health
-GET    /api/health/summary
-GET    /api/health/patient/:patientId
-DELETE /api/health/:id
+Includes `.js`, `.jsx`, `.ts` & `.tsx` by default. This option can be used to add fast refresh to `.mdx` files:
 
-GET    /api/appointments
-POST   /api/appointments
-PATCH  /api/appointments/:id/status
-DELETE /api/appointments/:id
+```js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import mdx from '@mdx-js/rollup'
 
-GET    /api/patients               (doctor/admin)
-GET    /api/patients/doctors       (list doctors, for booking)
-GET    /api/patients/:id           (doctor/admin)
-
-GET    /api/medications
-POST   /api/medications
-PUT    /api/medications/:id
-DELETE /api/medications/:id
-
-GET    /api/notifications
-GET    /api/notifications/unread-count
-PATCH  /api/notifications/:id/read
-PATCH  /api/notifications/read-all
-DELETE /api/notifications/:id
-
-GET    /api/messages/contacts
-GET    /api/messages/:userId
-POST   /api/messages
-
-GET    /api/documents
-POST   /api/documents              (multipart/form-data, field name "file")
-DELETE /api/documents/:id
-
-GET    /api/admin/overview         (admin)
-GET    /api/admin/users            (admin)
-POST   /api/admin/users            (admin)
-PATCH  /api/admin/users/:id        (admin)
-DELETE /api/admin/users/:id        (admin)
-
-GET    /api/dashboard/stats
-
-GET    /api/insights
-GET    /api/insights/patient/:patientId  (doctor/admin)
+export default defineConfig({
+  plugins: [
+    { enforce: 'pre', ...mdx() },
+    react({ include: /\.(mdx|js|jsx|ts|tsx)$/ }),
+  ],
+})
 ```
 
-Socket.IO events: connect with `auth: { token }`; server emits
-`notification:new` and `message:new` to the relevant user's room.
+> `node_modules` are never processed by this plugin (but esbuild will)
 
-## Important
-AI insights are rule-based/algorithmic in this version so the project works without an AI API key. You can later swap the insight engine for a clinician-approved AI service with proper privacy controls.
+### jsxImportSource
 
-This is a student-project architecture. It is not a medical diagnostic
-system. Health alerts are configurable monitoring notifications and should
-not be treated as emergency medical advice.
+Control where the JSX factory is imported from. Default to `'react'`
 
-## Modern demo features
-- **AI Health Risk Prediction:** explainable rule-based 7-day monitoring risk from recent BP, blood sugar, SpO2 and heart-rate trends.
-- **Voice Health Input:** browser Web Speech API converts spoken readings such as “BP 120 by 80, sugar 110” into form values.
-- **Emergency SOS + Live Location:** patient can activate an SOS, capture GPS coordinates and share a Google Maps location link with the care team through in-app notifications.
-
-These features are educational monitoring aids, not medical diagnosis or emergency services. SOS notifications are recorded in the application; real SMS/WhatsApp delivery requires an external provider integration and credentials.
-
-# CareTrack upgraded features
-
-This version modifies the existing CareTrack project in place and adds:
-- 5-language UI selector: English, Tamil, Hindi, Telugu, Malayalam
-- global browser voice assistant on login and authenticated pages
-- multilingual voice navigation and voice form filling
-- multilingual health-reading voice parser
-- 7-day explainable monitoring risk already present in the project
-- Emergency SOS with browser GPS and doctor notifications
-- doctor patient health report generation with Print / Save as PDF
-
-## Windows PowerShell
-
-Backend terminal:
-```powershell
-cd "...\build\backend"
-copy .env.example .env
-npm install
-npm start
+```js
+react({ jsxImportSource: '@emotion/react' })
 ```
 
-Frontend terminal:
-```powershell
-cd "...\build\frontend"
-copy .env.example .env
-npm install
-npm run dev
+### jsxRuntime
+
+By default, the plugin uses the [automatic JSX runtime](https://legacy.reactjs.org/blog/2020/09/22/introducing-the-new-jsx-transform.html). However, if you encounter any issues, you may opt out using the `jsxRuntime` option.
+
+```js
+react({ jsxRuntime: 'classic' })
 ```
 
-Use the URL printed by Vite. If port 5173 is busy, Vite may use 5174.
+### babel
 
-Voice recognition uses the browser Web Speech API. Chrome/Edge are recommended. Microphone permission is required.
+The `babel` option lets you add plugins, presets, and [other configuration](https://babeljs.io/docs/en/options) to the Babel transformation performed on each included file.
+
+```js
+react({
+  babel: {
+    presets: [...],
+    // Your plugins run before any built-in transform (eg: Fast Refresh)
+    plugins: [...],
+    // Use .babelrc files
+    babelrc: true,
+    // Use babel.config.js files
+    configFile: true,
+  }
+})
+```
+
+Note: When not using plugins, only esbuild is used for production builds, resulting in faster builds.
+
+#### Proposed syntax
+
+If you are using ES syntax that are still in proposal status (e.g. class properties), you can selectively enable them with the `babel.parserOpts.plugins` option:
+
+```js
+react({
+  babel: {
+    parserOpts: {
+      plugins: ['decorators-legacy'],
+    },
+  },
+})
+```
+
+This option does not enable _code transformation_. That is handled by esbuild.
+
+**Note:** TypeScript syntax is handled automatically.
+
+Here's the [complete list of Babel parser plugins](https://babeljs.io/docs/en/babel-parser#ecmascript-proposalshttpsgithubcombabelproposals).
+
+### reactRefreshHost
+
+The `reactRefreshHost` option is only necessary in a module federation context. It enables HMR to work between a remote & host application. In your remote Vite config, you would add your host origin:
+
+```js
+react({ reactRefreshHost: 'http://localhost:3000' })
+```
+
+Under the hood, this simply updates the React Fash Refresh runtime URL from `/@react-refresh` to `http://localhost:3000/@react-refresh` to ensure there is only one Refresh runtime across the whole application. Note that if you define `base` option in the host application, you need to include it in the option, like: `http://localhost:3000/{base}`.
+
+## Middleware mode
+
+In [middleware mode](https://vite.dev/config/server-options.html#server-middlewaremode), you should make sure your entry `index.html` file is transformed by Vite. Here's an example for an Express server:
+
+```js
+app.get('/', async (req, res, next) => {
+  try {
+    let html = fs.readFileSync(path.resolve(root, 'index.html'), 'utf-8')
+
+    // Transform HTML using Vite plugins.
+    html = await viteServer.transformIndexHtml(req.url, html)
+
+    res.send(html)
+  } catch (e) {
+    return next(e)
+  }
+})
+```
+
+Otherwise, you'll probably get this error:
+
+```
+Uncaught Error: @vitejs/plugin-react can't detect preamble. Something is wrong.
+```
+
+### disableOxcRecommendation
+
+If set, disables the recommendation to use `@vitejs/plugin-react-oxc` (which is shown when `rolldown-vite` is detected and `babel` is not configured).
+
+## Consistent components exports
+
+For React refresh to work correctly, your file should only export React components. You can find a good explanation in the [Gatsby docs](https://www.gatsbyjs.com/docs/reference/local-development/fast-refresh/#how-it-works).
+
+If an incompatible change in exports is found, the module will be invalidated and HMR will propagate. To make it easier to export simple constants alongside your component, the module is only invalidated when their value changes.
+
+You can catch mistakes and get more detailed warning with this [eslint rule](https://github.com/ArnaudBarre/eslint-plugin-react-refresh).
